@@ -53,8 +53,28 @@ __all__ = [
     "VerificationError",
     "VerificationRecord",
     "checks",
+    "judge_route",
     "probe_judge",
 ]
+
+
+def judge_route(kind: str, config: Mapping[str, str]) -> tuple[str, str]:
+    """The protocol a configured Judge speaks and the exact URL its requests go to.
+
+    The engine forwards Judge traffic through its Gateway, so it needs the same answer the
+    Judge itself would reach: an LLM Judge's protocol from its endpoint and model, an Agent
+    Judge's from its CLI (Codex speaks Responses, Claude Code speaks Messages).
+    """
+    if kind == "llm":
+        try:
+            protocol = _llm.resolve_protocol(config)
+        except ValueError as exc:
+            raise ConfigurationError(str(exc)) from exc
+    elif kind == "agent":
+        protocol = "openai-responses" if config["adapter"] == "codex-cli" else "anthropic"
+    else:
+        raise ValueError("Judge kind must be 'llm' or 'agent'")
+    return protocol, _llm._endpoint(config["base_url"], protocol)
 
 
 def probe_judge(kind: str, config: Mapping[str, str]) -> None:

@@ -182,8 +182,11 @@ async def _build(base: dict, tag: str, identity: str, *, user: str, sudo: bool, 
             "--tag", tag, str(context), timeout=1800,
         )  # fmt: skip
     if code != 0:
+        # The setup script explains what the image lacks; buildx's own summary does not.
+        explained = [line.split("ALE: ", 1)[1] for line in stderr.splitlines() if "ALE: " in line]
+        reason = " ".join(explained) if explained else stderr.strip()[-2000:]
         raise TaskDefinitionError(
-            f"could not add the ALE framework layer to the Task image: {stderr.strip()[-2000:]}"
+            f"could not add the ALE framework layer to the Task image: {reason}"
         )
 
 

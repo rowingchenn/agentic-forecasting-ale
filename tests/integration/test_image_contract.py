@@ -14,8 +14,9 @@ from __future__ import annotations
 
 import pytest
 
-from ale.core.errors import ProviderCapabilityError
+from ale.core.errors import ProviderCapabilityError, TaskDefinitionError
 from ale.core.sandbox import ImageRef
+from ale.run.framework import with_framework
 from ale.run.providers.docker import DockerProvider
 from tests.support import CONTAINER_BASE
 
@@ -35,12 +36,11 @@ async def test_our_base_image_conforms() -> None:
 
 
 @pytest.mark.asyncio
-async def test_an_upstream_image_is_refused_by_name() -> None:
-    """Named, so the answer is what to fix rather than that something went wrong."""
-    problems = await DockerProvider().check_image(UPSTREAM)
-
-    assert problems
-    assert any("unprivileged" in problem for problem in problems)
+async def test_an_image_without_the_tasks_account_is_refused_by_name() -> None:
+    """Any image serves once it has Python and the account; what is missing is named."""
+    prepared = await DockerProvider().prepare_image(ImageRef(kind="container", reference=UPSTREAM))
+    with pytest.raises(TaskDefinitionError, match=r"image\.user"):
+        await with_framework(prepared.runtime_ref, user="user", sudo=False)
 
 
 @pytest.mark.asyncio
@@ -54,7 +54,7 @@ async def test_an_old_python_image_is_refused_by_name() -> None:
 async def test_a_non_conforming_image_never_reaches_provisioning() -> None:
     """Refused before a container exists, not diagnosed from its corpse."""
     with pytest.raises(ProviderCapabilityError, match=r"sandbox-image\.md"):
-        await DockerProvider().prepare_image(ImageRef(kind="container", reference=UPSTREAM))
+        await DockerProvider().prepare_image(ImageRef(kind="container", reference=OLD_PYTHON))
 
 
 @pytest.mark.asyncio

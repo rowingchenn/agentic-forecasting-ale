@@ -8,6 +8,7 @@ import json
 import os
 import shutil
 import subprocess
+import sys
 import time
 from typing import Any
 
@@ -111,9 +112,9 @@ def _start_server() -> bool:
         account = pwd.getpwnam(os.environ.get("ALE_AGENT_USER") or "user")
     except KeyError as exc:
         raise GuiUnavailable("the agent account does not exist in this image") from exc
-    session = _session_environment(account.pw_uid)
+    session = _session_environment(account)
     if session is None:
-        raise GuiUnavailable("no desktop session is running for the agent account yet")
+        raise GuiUnavailable("the agent account's desktop session is still starting")
     env = {key: session[key] for key in _SESSION_KEYS if key in session}
     env.update(
         HOME=account.pw_dir,
@@ -128,11 +129,6 @@ def _start_server() -> bool:
                     env["DBUS_SESSION_BUS_ADDRESS"] = address
         except OSError:
             pass
-
-    def demote() -> None:
-        os.setgid(account.pw_gid)
-        os.initgroups(account.pw_name, account.pw_gid)
-        os.setuid(account.pw_uid)
 
     with contextlib.suppress(FileNotFoundError):
         os.unlink(_LINUX_SOCKET)
@@ -153,7 +149,7 @@ def _start_server() -> bool:
             stdout=log,
             stderr=log,
             start_new_session=True,
-            preexec_fn=demote,
+            preexec_fn=_demote(account),
         )
         log.close()
     except (OSError, subprocess.SubprocessError) as exc:
@@ -166,28 +162,82 @@ def _start_server() -> bool:
     raise GuiUnavailable("cua-driver did not start in the desktop session")
 
 
-def _session_environment(uid: int) -> dict[str, str] | None:
+#: Run as the agent account: reading another account's process environment needs
+#: CAP_SYS_PTRACE, which a container's root does not have, but an account reads its own.
+#: It also reports whether the session has reached its window manager or shell, because an
+#: X server answers screenshots long before the desktop the agent will use is drawn.
+_SESSION_SCAN = """
+import json, os, sys
+shells = set(sys.argv[1].split(","))
+keys = set(sys.argv[2:])
+best, shell = None, False
+for name in os.listdir("/proc"):
+    if not name.isdigit():
+        continue
+    try:
+        if os.stat("/proc/" + name).st_uid != os.getuid():
+            continue
+        with open("/proc/" + name + "/comm") as handle:
+            shell = shell or handle.read().strip() in shells
+        with open("/proc/" + name + "/environ", "rb") as handle:
+            raw = handle.read()
+    except OSError:
+        continue
+    env = dict(i.split("=", 1) for i in raw.decode("utf-8", "replace").split("\\0") if "=" in i)
+    if not (env.get("DISPLAY") or env.get("WAYLAND_DISPLAY")):
+        continue
+    score = sum(key in env for key in keys)
+    if best is None or score > best[0]:
+        best = (score, env)
+print(json.dumps(best[1] if best and shell else None))
+"""
+#: Window managers and desktop shells; one of them running means the desktop is drawn.
+_SHELLS = (
+    "gnome-shell",
+    "mutter",
+    "xfwm4",
+    "xfce4-session",
+    "kwin_x11",
+    "kwin_wayland",
+    "plasmashell",
+    "openbox",
+    "fluxbox",
+    "i3",
+    "sway",
+    "marco",
+    "metacity",
+    "muffin",
+    "cinnamon",
+    "budgie-wm",
+    "icewm",
+    "fvwm",
+)
+
+
+def _session_environment(account: Any) -> dict[str, str] | None:
     """The environment of the account's desktop session, read from its own processes."""
-    best: tuple[int, dict[str, str]] | None = None
-    for entry in os.scandir("/proc"):
-        if not entry.name.isdigit():
-            continue
-        try:
-            if entry.stat().st_uid != uid:
-                continue
-            with open(f"/proc/{entry.name}/environ", "rb") as handle:
-                raw = handle.read()
-        except OSError:
-            continue
-        env = dict(
-            item.split("=", 1) for item in raw.decode("utf-8", "replace").split("\0") if "=" in item
+    try:
+        result = subprocess.run(
+            [sys.executable, "-c", _SESSION_SCAN, ",".join(_SHELLS), *_SESSION_KEYS],
+            capture_output=True,
+            text=True,
+            timeout=30,
+            check=False,
+            preexec_fn=_demote(account),
         )
-        if not (env.get("DISPLAY") or env.get("WAYLAND_DISPLAY")):
-            continue
-        score = sum(key in env for key in _SESSION_KEYS)
-        if best is None or score > best[0]:
-            best = (score, env)
-    return best[1] if best else None
+        found = json.loads(result.stdout or "null")
+    except (OSError, subprocess.SubprocessError, json.JSONDecodeError):
+        return None
+    return found if isinstance(found, dict) else None
+
+
+def _demote(account: Any):  # type: ignore[no-untyped-def]
+    def demote() -> None:
+        os.setgid(account.pw_gid)
+        os.initgroups(account.pw_name, account.pw_gid)
+        os.setuid(account.pw_uid)
+
+    return demote
 
 
 def available() -> bool:
