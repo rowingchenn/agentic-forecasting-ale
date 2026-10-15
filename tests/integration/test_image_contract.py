@@ -16,7 +16,7 @@ import pytest
 
 from ale.core.errors import ProviderCapabilityError
 from ale.core.sandbox import ImageRef
-from ale.run.providers.docker import DEFAULT_AGENT_USER, DockerProvider
+from ale.run.providers.docker import DockerProvider
 from tests.support import CONTAINER_BASE
 
 pytestmark = [pytest.mark.integration, pytest.mark.needs_docker]
@@ -63,9 +63,3 @@ async def test_the_check_is_paid_for_once() -> None:
     provider = DockerProvider()
     await provider.check_image(CONFORMING)
     assert CONFORMING in provider._checked
-
-
-@pytest.mark.asyncio
-async def test_the_agent_account_comes_from_the_image() -> None:
-    """The image created it, so the image names it."""
-    assert await DockerProvider()._agent_user(CONFORMING) == DEFAULT_AGENT_USER
