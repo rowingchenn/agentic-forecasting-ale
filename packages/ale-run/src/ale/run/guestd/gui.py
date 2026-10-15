@@ -15,6 +15,10 @@ from typing import Any
 COORDINATE_SPACE = 1000
 #: Where guestd's Cua Driver server listens on Linux.
 _LINUX_SOCKET = "/tmp/ale-cua-driver.sock"
+#: Where the framework installs Cua Driver on Windows; a Linux image has it on PATH.
+_WINDOWS_DRIVER = os.path.join(
+    os.environ.get("PROGRAMDATA", r"C:\ProgramData"), "ALE", "cua-driver", "cua-driver.exe"
+)
 #: The alias systemd links when a display manager (GDM, LightDM, SDDM) is enabled.
 _DISPLAY_MANAGER = "/etc/systemd/system/display-manager.service"
 #: What Cua Driver takes from the session it drives.
@@ -36,6 +40,8 @@ class GuiUnavailable(RuntimeError):
 
 def _binary() -> str:
     configured = os.environ.get("ALE_CUA_DRIVER")
+    if not configured and os.name == "nt" and os.path.isfile(_WINDOWS_DRIVER):
+        configured = _WINDOWS_DRIVER
     found = configured or shutil.which("cua-driver") or shutil.which("cua-driver.exe")
     if not found:
         raise GuiUnavailable("cua-driver is not installed in this image")
