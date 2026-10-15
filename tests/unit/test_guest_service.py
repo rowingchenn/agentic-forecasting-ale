@@ -1,36 +1,16 @@
 from __future__ import annotations
 
 import io
-import shutil
 import tarfile
 from pathlib import Path
 
 import pytest
-from tests.support import ENGINE_ROOT
 
 from ale.core.errors import ProviderStartError
 from ale.run import guestd
 from ale.run.providers.qemu import guest_service_identity, install_guest_service
-from ale.run.releases import VERSION, releases, source_content
 
 pytestmark = pytest.mark.unit
-
-
-@pytest.mark.skipif(shutil.which("git") is None, reason="git is unavailable")
-def test_a_published_release_never_changes_its_sources() -> None:
-    for release in releases().values():
-        current = source_content(release, ENGINE_ROOT)
-        assert current == release.content, (
-            f"{release.repository} sources changed since {release.version} was cut; give it a "
-            f"new version in releases.json and record content {current}"
-        )
-
-
-def test_every_release_is_an_exact_version() -> None:
-    for release in releases().values():
-        assert VERSION.fullmatch(release.version)
-        assert release.reference.endswith(f":{release.version}")
-        assert (ENGINE_ROOT / release.dockerfile).is_file()
 
 
 def _rootfs(tmp_path: Path, *stale: tuple[str, bytes]) -> Path:

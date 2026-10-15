@@ -14,13 +14,12 @@ tags were already immutable but meant nothing to the people choosing them.
 
 ## Decision
 
-- Every ALE image is published under an exact `X.Y.Z` version, once. The engine's
-  `releases.json` records the version it uses for each image and a hash of that image's
-  sources. Changing the sources without a new version fails the image lock test and the
-  publishing workflow, and the workflow skips versions the registry already has. No
-  `latest` tag is published; an already-published image can be given a version by
-  pointing a new tag at the same manifest.
-- Task Dockerfiles name a base release; lint rejects floating tags.
+- Every ALE image is published under the engine's own version, once. The workflow skips a
+  version the registry already has, so a changed image ships with the next engine
+  version. No `latest` tag is published; an already-published image can be given a
+  version by pointing a new tag at the same manifest.
+- Tasks may build from any image. Task repositories maintained with ALE name an exact
+  base version rather than a floating tag.
 - Images carry no guest service. Docker copies the engine's guestd into each sandbox, and
   VM preparation writes it and its systemd unit into each disk, configured from the
   image's `ale.user` and `ale.gui` labels. The guest service identity is part of a VM
@@ -30,5 +29,5 @@ tags were already immutable but meant nothing to the people choosing them.
 
 An engine update no longer changes what an existing Task builds from or which protocol its
 guest speaks; a checkout syncs to a newer engine and newer bases when it chooses to.
-Older base releases stay usable with newer engines. A change to an image costs a version
-bump in the same change, and a release under review is built locally until CI publishes it.
+Older bases stay usable with newer engines. A changed image takes effect with the next
+engine version, and a version under review is built locally until CI publishes it.

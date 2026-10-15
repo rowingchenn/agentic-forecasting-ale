@@ -26,6 +26,7 @@ from ale.core.taskspec import (
     Resources,
     VerificationMode,
 )
+from ale.run import ale_image
 from ale.run.content import tree_digest
 from ale.run.providers import ProviderRegistry
 from ale.run.providers.qemu import (
@@ -34,7 +35,6 @@ from ale.run.providers.qemu import (
     guest_service_identity,
     install_guest_service,
 )
-from ale.run.releases import reference
 from ale.run.sources import cache_root
 
 __all__ = [
@@ -47,7 +47,7 @@ __all__ = [
     "vm_materialization_identity",
 ]
 
-MATERIALIZER_IMAGE = os.environ.get("ALE_VM_MATERIALIZER", reference("ale-vm-materializer"))
+MATERIALIZER_IMAGE = os.environ.get("ALE_VM_MATERIALIZER", ale_image("ale-vm-materializer"))
 VM_OUTPUT_CONTRACT = "ale-vm-qcow2/v1"
 WINDOWS_BUILD_CONTRACT = "ale-windows-powershell/v1"
 

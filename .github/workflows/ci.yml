@@ -115,7 +115,7 @@ jobs:
         run: |
           images/build.sh container-ubuntu22-base
           docker build -f tests/acceptance/agent-judge.Dockerfile -t ale-agent-judge-live:local \
-            --build-arg "BASE=$(python3 packages/ale-run/src/ale/run/releases.py --reference container-ubuntu22-base)" .
+            --build-arg "BASE=$(uv run python -c 'from ale.run import ale_image; print(ale_image("container-ubuntu22-base"))')" .
       - name: Run live judge acceptance
         if: env.OPENAI_API_KEY != '' || env.ANTHROPIC_API_KEY != ''
         env:
@@ -135,8 +135,8 @@ jobs:
         with:
           enable-cache: true
       - run: uv sync --frozen --all-groups
-      # The pinned releases: pulled once published, built here while a new one is still
-      # under review.
+      # This engine version's images: pulled once published, built here while a new
+      # version is still under review.
       - run: images/build.sh container-ubuntu22-base ale-qemu-runner
       # One -m, not two: a second `-m` replaces the first rather than intersecting, so
       # the earlier form silently ran every non-KVM test including the unit suite.

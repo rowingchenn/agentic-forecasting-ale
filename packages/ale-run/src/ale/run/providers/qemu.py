@@ -60,14 +60,13 @@ from ale.core.sandbox import (
     SandboxState,
 )
 from ale.core.taskspec import NetworkMode, OperatingSystem
-from ale.run import guestd
+from ale.run import ale_image, guestd
 from ale.run.gpu import GpuLease, normalize_pci_bdf, parse_nvidia_smi
 from ale.run.images import (
     resolve_local_vm_fixture,
     resolve_prepared_vm_image,
     resolve_vm_image,
 )
-from ale.run.releases import reference
 from ale.run.sources import cache_root
 from ale.run.transport import GuestClient, TcpTransport
 
@@ -111,7 +110,7 @@ VM_STORAGE_OVERHEAD_MB = 1024
 #: permissions, guest bridge and signal handling a QEMU-in-a-container needs; ours is
 #: published under our own namespace so a run does not depend on an image someone else
 #: can move, and differs only in what its entrypoint checks and says.
-RUNNER_IMAGE = os.environ.get("ALE_QEMU_RUNNER", reference("ale-qemu-runner"))
+RUNNER_IMAGE = os.environ.get("ALE_QEMU_RUNNER", ale_image("ale-qemu-runner"))
 
 #: Where the runner expects the disk to boot, and the address it presents the host at.
 #: Runner-side forwarding and the rewritten gateway URL both target the latter.

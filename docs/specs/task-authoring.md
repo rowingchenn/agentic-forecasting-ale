@@ -152,9 +152,9 @@ permission, and piece of initial state required by the Task. The Linux bases are
 - container: `ghcr.io/agentslastexam/container-ubuntu22-base` (Ubuntu 22.04);
 - VM: `ghcr.io/agentslastexam/vm-ubuntu24-base` (Ubuntu 24.04).
 
-Name an exact release, such as `:0.1.1`; `ale new-task` writes the one the engine uses
-and `ale lint` rejects `latest`. A Task keeps building from the release it names until
-its author moves it ([Sandbox image](sandbox-image.md#versions)).
+Name an exact version, such as `:0.1.1`, never `latest`; `ale new-task` writes the
+engine's current version. A Task keeps building from the version it names until its
+author moves it ([Sandbox image](sandbox-image.md#versions)).
 
 The submitted initial environment must be reproducible from `image/`; an exploratory sandbox
 snapshot is not Task source. Large build inputs belong in `image/assets/` and are copied by the

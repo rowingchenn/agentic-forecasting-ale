@@ -5,7 +5,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
-from tests.support import CONTAINER_BASE, VM_BASE
+from tests.support import VM_BASE
 from typer.testing import CliRunner
 
 from ale.core.errors import TaskDefinitionError
@@ -91,39 +91,22 @@ def test_fixed_installation_in_setup_is_reported(tmp_path: Path) -> None:
     assert "belongs in image/Dockerfile" in messages(task)
 
 
-def test_final_stage_must_be_ale_base(tmp_path: Path) -> None:
+@pytest.mark.parametrize(
+    "base", ["python:3.12", "ghcr.io/agentslastexam/container-ubuntu22-base:latest", "debian"]
+)
+def test_any_base_image_is_accepted(tmp_path: Path, base: str) -> None:
     task = scaffold_task(tmp_path / "fresh")
-    (task / "image" / "Dockerfile").write_text("FROM python:3.12\n")
-    assert "final stage" in messages(task)
+    (task / "image" / "Dockerfile").write_text(f"FROM {base}\n")
+    assert messages(task) == ""
 
 
-def test_vm_final_stage_matches_kind_and_owns_no_boot_contract(tmp_path: Path) -> None:
+def test_vm_final_stage_owns_no_boot_contract(tmp_path: Path) -> None:
     task = scaffold_task(tmp_path / "fresh")
     manifest = task / "task.yaml"
     manifest.write_text(manifest.read_text().replace("kind: container", "kind: vm"))
     dockerfile = task / "image" / "Dockerfile"
     dockerfile.write_text(f'FROM {VM_BASE}\nCMD ["bash"]\n')
     assert "CMD" in messages(task)
-    dockerfile.write_text(f"FROM {CONTAINER_BASE}\n")
-    assert "declared vm" in messages(task)
-
-
-@pytest.mark.parametrize(
-    "base",
-    [
-        "ghcr.io/agentslastexam/container-ubuntu22-base:latest",
-        "ghcr.io/agentslastexam/container-ubuntu22-base",
-        "ghcr.io/agentslastexam/container-ubuntu22-base:2ad7402242d4",
-    ],
-)
-def test_a_base_must_be_pinned_to_a_release(tmp_path: Path, base: str) -> None:
-    task = scaffold_task(tmp_path / "fresh")
-    dockerfile = task / "image" / "Dockerfile"
-    dockerfile.write_text(f"FROM {base}\n")
-    assert "never latest" in messages(task)
-    digest = "sha256:" + "a" * 64
-    dockerfile.write_text(f"FROM ghcr.io/agentslastexam/container-ubuntu22-base:0.1.0@{digest}\n")
-    assert messages(task) == ""
 
 
 def test_ref_only_assets_are_rejected(tmp_path: Path) -> None:

@@ -10,7 +10,6 @@ import yaml
 
 from ale.core.errors import TaskDefinitionError
 from ale.core.taskspec import OperatingSystem
-from ale.run.releases import REGISTRY, reference
 from ale.run.tasksets.manifest import (
     INSTRUCTION,
     STAGE_ENTRY,
@@ -27,11 +26,6 @@ _FIXED_SETUP = re.compile(
     r"Invoke-WebRequest|Invoke-RestMethod)",
     re.IGNORECASE,
 )
-#: A base is pinned to a published release; a floating tag would let an engine update
-#: change the image an existing Task builds from.
-_RELEASE = r":\d+\.\d+\.\d+(?:@sha256:[0-9a-f]{64})?$"
-_CONTAINER_BASE = re.compile(rf"^{re.escape(REGISTRY)}/container-ubuntu22-base{_RELEASE}")
-_VM_BASE = re.compile(rf"^{re.escape(REGISTRY)}/vm-ubuntu24-base{_RELEASE}")
 _VM_RESERVED_NAMES = {
     "ale-guestd.service",
     "autoinstall.yaml",
@@ -161,18 +155,7 @@ def _check_folder(folder: TaskFolder) -> list[Finding]:
                 Finding(folder.image_dir / "assets", "image/assets requires image/run.ps1")
             )
     elif dockerfile.is_file():
-        final = _final_from(dockerfile)
-        expected = _VM_BASE if kind == "vm" else _CONTAINER_BASE
-        if final is None or not expected.fullmatch(final):
-            label = "vm-ubuntu24-base" if kind == "vm" else "container-ubuntu22-base"
-            findings.append(
-                Finding(
-                    dockerfile,
-                    f"final stage for declared {kind or 'unknown'} kind must derive directly "
-                    f"from an ALE {label} image pinned to a release such as "
-                    f"{reference(label)}, never latest",
-                )
-            )
+        # Any base image is accepted; the engine adds what it needs when it prepares one.
         if kind == "vm" and _vm_boot_override(dockerfile):
             findings.append(
                 Finding(dockerfile, "VM final stage must not declare CMD or ENTRYPOINT")
@@ -209,15 +192,6 @@ def _check_folder(folder: TaskFolder) -> list[Finding]:
             )
         )
     return findings
-
-
-def _final_from(path: Path) -> str | None:
-    images: list[str] = []
-    for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
-        match = re.match(r"^\s*FROM\s+([^\s]+)", line, flags=re.IGNORECASE)
-        if match:
-            images.append(match.group(1))
-    return images[-1] if images else None
 
 
 def _vm_boot_override(path: Path) -> bool:

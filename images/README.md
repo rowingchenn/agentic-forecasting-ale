@@ -20,15 +20,14 @@ boots it. Windows preparation already produces qcow2, so it goes directly to the
 The image contract, identity rules and required labels are defined in
 [`../docs/specs/sandbox-image.md`](../docs/specs/sandbox-image.md).
 
-Each image's version lives in `packages/ale-run/src/ale/run/releases.json` with a hash of
-its sources. A published version never changes: after editing an image, give it a new
-version there and record the new hash (the image lock test prints it).
+Every image is published under the engine version (`packages/ale-run/pyproject.toml`)
+once and never overwritten, so a changed image ships with the next engine version.
 
 ```bash
-just images                                  # pull published releases, build new ones
+just images                                  # pull published images, build unpublished ones
 images/build.sh vm-ubuntu24-base             # one image
 ```
 
-`.github/workflows/images.yml` publishes each new version once; its manual `promote`
-input gives an already-published image a version without rebuilding it. The licensed
+`.github/workflows/images.yml` publishes each version once; its manual `promote` input
+gives an already-published image a version without rebuilding it. The licensed
 Windows disk remains private. Do not add Task content or Provider credentials here.

@@ -1,4 +1,4 @@
-# The pinned base release comes from releases.json; CI passes it as BASE.
+# CI passes this engine version's container base as BASE.
 ARG BASE
 FROM ${BASE}
 

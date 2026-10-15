@@ -43,10 +43,9 @@ from ale.core.sandbox import (
     SandboxState,
 )
 from ale.core.taskspec import NetworkMode, OperatingSystem
-from ale.run import guestd
+from ale.run import ale_image, guestd
 from ale.run.gpu import GpuLease, parse_nvidia_smi
 from ale.run.images import resolve_container_image, resolve_prepared_container_image
-from ale.run.releases import reference
 from ale.run.sources import cache_root
 from ale.run.transport import GuestClient, StdioTransport
 
@@ -60,7 +59,7 @@ __all__ = [
 
 GUESTD_DIR = PurePosixPath("/opt/ale/guestd")
 #: Any image with iptables can apply a sandbox's host rules; ALE's QEMU runner is one.
-NETFILTER_IMAGE = reference("ale-qemu-runner")
+NETFILTER_IMAGE = ale_image("ale-qemu-runner")
 
 #: An image sets this to "true" when it starts a desktop, so provisioning waits for it.
 GUI_LABEL = "ale.gui"

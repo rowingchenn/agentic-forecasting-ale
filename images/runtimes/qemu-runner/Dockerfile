@@ -10,8 +10,8 @@
 # configuration for a benchmark we do not run. Publishing it under our own namespace is
 # the other half — a run should not depend on an image someone else can move or delete.
 #
-# Its version is pinned in packages/ale-run/src/ale/run/releases.json; CI publishes each new
-# version once, and `images/build.sh ale-qemu-runner` builds one not yet published.
+# Published under each engine version by .github/workflows/images.yml; `images/build.sh
+# ale-qemu-runner` builds a version not yet published.
 FROM agentslastexam/ale-qemu:0.2.0
 
 COPY entrypoint.sh /usr/local/bin/ale-qemu-entrypoint

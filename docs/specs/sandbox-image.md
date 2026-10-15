@@ -42,18 +42,16 @@ engine's instead.
 
 ## Versions
 
-Every ALE image is published under an exact `X.Y.Z` version that never changes. The
-version the engine uses for each image, and a hash of the sources it was built from, are
-recorded in `packages/ale-run/src/ale/run/releases.json`. Changing an image's sources
-requires a new version there; the image lock test and the publishing workflow both refuse
-otherwise, and CI publishes only versions the registry does not have yet. No `latest` tag
-is published.
+Every ALE image is published under the engine's version, such as `0.1.1`, once and never
+overwritten: the publishing workflow skips a version the registry already has, and no
+`latest` tag is published. An engine runs exactly the images of its own version, so a
+checkout that stays on one engine version keeps the same images whatever later versions
+publish. Publishing a changed image therefore means releasing a new engine version.
 
-A Task's final stage names a base release, such as `container-ubuntu22-base:0.1.1`,
-optionally with its digest; `ale lint` rejects `latest` and any other floating tag. An
-older release stays usable with a newer engine, because the engine supplies the guest
-service. A checkout pinned to one engine commit therefore keeps building its Tasks from
-exactly the images they name, whatever later releases publish.
+A Task may build from any image. Task repositories maintained with ALE name an exact
+version of an ALE base, such as `container-ubuntu22-base:0.1.1`, so that a Task keeps
+building from the same base until its author moves it; `ale new-task` writes the
+engine's current version.
 
 ## Task image
 
