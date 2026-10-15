@@ -20,9 +20,15 @@ boots it. Windows preparation already produces qcow2, so it goes directly to the
 The image contract, identity rules and required labels are defined in
 [`../docs/specs/sandbox-image.md`](../docs/specs/sandbox-image.md).
 
+Each image's version lives in `packages/ale-run/src/ale/run/releases.json` with a hash of
+its sources. A published version never changes: after editing an image, give it a new
+version there and record the new hash (the image lock test prints it).
+
 ```bash
-just images
+just images                                  # pull published releases, build new ones
+images/build.sh vm-ubuntu24-base             # one image
 ```
 
-Publishing for buildable images is handled by `.github/workflows/images.yml`. The licensed
+`.github/workflows/images.yml` publishes each new version once; its manual `promote`
+input gives an already-published image a version without rebuilding it. The licensed
 Windows disk remains private. Do not add Task content or Provider credentials here.

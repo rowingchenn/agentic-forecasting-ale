@@ -6,8 +6,12 @@ from ale.core.config import RunConfig
 from ale.core.sandbox import ImageRef, PreparedTaskImage, Provider
 from ale.core.taskspec import ImageKind
 from ale.run.providers import ProviderRegistry
+from ale.run.releases import reference
 
 ENGINE_ROOT = Path(__file__).resolve().parents[1]
+#: The ALE base releases this engine pins, for images a test builds or runs.
+CONTAINER_BASE = reference("container-ubuntu22-base")
+VM_BASE = reference("vm-ubuntu24-base")
 
 
 def sibling_checkout(name: str) -> Path:

@@ -1,73 +1,44 @@
 #!/usr/bin/env bash
-# Build the publishable Sandbox images locally.
+# Make the ALE images this checkout pins available locally.
 #
-# CI publishes these to GHCR (see .github/workflows/images.yml); this script exists so
-# a developer can iterate without pushing. The content tag mirrors CI's, so a locally
-# built image and a published one with the same tag have the same inputs.
+# Versions come from packages/ale-run/src/ale/run/releases.json. A published release is
+# immutable, so a version the registry already has is pulled rather than rebuilt: a local
+# rebuild of the same version would be a different image under the same name. Only a
+# version not yet published is built here, for testing before CI publishes it.
+#
+#   images/build.sh                      every pinned image
+#   images/build.sh vm-ubuntu24-base     selected images, by repository name
 set -euo pipefail
 
 cd "$(dirname "$0")/.."   # repository root
 
-if (( $# )); then
-    images=("$@")
-else
-    images=(container-ubuntu22 vm-ubuntu24 vm-materializer qemu-runner)
-fi
 runtime="${ALE_CONTAINER_RUNTIME:-docker}"
-
 command -v "$runtime" >/dev/null 2>&1 || {
     echo "ERROR: $runtime not found — see 'just doctor'" >&2
     exit 1
 }
 
-for image in "${images[@]}"; do
-    case "$image" in
-        container-ubuntu22)
-            directory="images/base/container-ubuntu22"
-            repository="container-ubuntu22-base"
-            version="latest"
-            context="."
-            inputs=("$directory" packages/ale-run/src/ale/run/guestd)
-            ;;
-        vm-ubuntu24)
-            directory="images/base/vm-ubuntu24"
-            repository="vm-ubuntu24-base"
-            version="0.1.0"
-            context="."
-            inputs=(
-                "$directory"
-                images/builders/vm-materializer/10-root.conf
-                packages/ale-run/src/ale/run/guestd
-            )
-            ;;
-        vm-materializer)
-            directory="images/builders/vm-materializer"
-            repository="ale-vm-materializer"
-            version="0.1.0"
-            context="$directory"
-            inputs=("$directory")
-            ;;
-        qemu-runner)
-            directory="images/runtimes/qemu-runner"
-            repository="ale-qemu-runner"
-            version="0.1.0"
-            context="$directory"
-            inputs=("$directory")
-            ;;
-        *)
-            echo "ERROR: unknown image: $image" >&2
-            exit 1
-            ;;
-    esac
-
-    content=$(git ls-files -s "${inputs[@]}" | sha256sum | cut -c1-12)
+releases=$(python3 packages/ale-run/src/ale/run/releases.py "$@")
+while read -r repository version recorded dockerfile context inputs; do
     name="ghcr.io/agentslastexam/${repository}"
-    tags=(--tag "${name}:${version}" --tag "${name}:${content}")
-
-    echo ">> building ${name}:${content}"
+    read -r -a input_paths <<<"$inputs"
+    content=$(git ls-files -s -- "${input_paths[@]}" | sha256sum | cut -c1-12)
+    if [[ "$content" != "$recorded" ]]; then
+        echo "ERROR: ${repository} sources changed since ${version} (${recorded} -> ${content});" \
+            "give it a new version in releases.json" >&2
+        exit 1
+    fi
+    if "$runtime" buildx imagetools inspect "${name}:${version}" >/dev/null 2>&1; then
+        echo ">> pulling published ${name}:${version}"
+        "$runtime" pull "${name}:${version}"
+        continue
+    fi
+    echo ">> building unpublished ${name}:${version} (${content})"
     "$runtime" build \
-        --file "$directory/Dockerfile" \
-        "${tags[@]}" \
+        --file "$dockerfile" \
+        --tag "${name}:${version}" \
+        --tag "${name}:${content}" \
         --label "ale.content_hash=${content}" \
+        --label "ale.image_version=${version}" \
         "$context"
-done
+done <<<"$releases"

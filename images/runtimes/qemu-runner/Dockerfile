@@ -10,9 +10,8 @@
 # configuration for a benchmark we do not run. Publishing it under our own namespace is
 # the other half — a run should not depend on an image someone else can move or delete.
 #
-# Build and publish:
-#   docker build -f images/runtimes/qemu-runner/Dockerfile -t ghcr.io/agentslastexam/ale-qemu-runner:0.1.0 images/runtimes/qemu-runner
-#   docker push ghcr.io/agentslastexam/ale-qemu-runner:0.1.0
+# Its version is pinned in packages/ale-run/src/ale/run/releases.json; CI publishes each new
+# version once, and `images/build.sh ale-qemu-runner` builds one not yet published.
 FROM agentslastexam/ale-qemu:0.2.0
 
 COPY entrypoint.sh /usr/local/bin/ale-qemu-entrypoint

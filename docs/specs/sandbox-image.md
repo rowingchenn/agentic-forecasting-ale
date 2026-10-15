@@ -7,9 +7,9 @@ directly, or builds `image/run.ps1` on `image.base_ref`.
 ## ALE base images
 
 - `container-ubuntu22-base` provides an Ubuntu 22.04 desktop container.
-- `vm-ubuntu24-base` provides Ubuntu 24.04, systemd, full GNOME/GDM, the declared
-  unprivileged user, and ALE guest integration for QEMU. It has no firewall of its own:
-  network policy is enforced by the QEMU runner outside the guest
+- `vm-ubuntu24-base` provides Ubuntu 24.04, systemd, full GNOME/GDM and the declared
+  unprivileged user for QEMU. It has no firewall of its own: network policy is enforced
+  by the QEMU runner outside the guest
   ([security.md](security.md#1-a-sandbox-has-only-declared-ways-out)).
 - The private Windows 10 BYOL base provides a logged-in desktop, system Python, guestd,
   Cua Driver, WinGet, Chocolatey, and the runtimes required by autonomous agents.
@@ -18,8 +18,9 @@ directly, or builds `image/run.ps1` on `image.base_ref`.
 The bases provide framework integration that should not be recreated per Task:
 
 - system Python 3.12 or newer (`python3` on Linux, `python.exe` on Windows);
-- an unprivileged account with a real home, exposed by the Provider contract;
-- the guest service and dependencies needed by the Providers;
+- an unprivileged account with a real home, declared by the `ale.user` and `ale.gui`
+  labels;
+- the interpreter and dependencies the guest service needs;
 - a long-lived image command that ALE does not replace;
 - `sudo` where Tasks requesting solver elevation are supported;
 - Cua Driver and a ready graphical session for GUI bases. All guestd screenshot and input
@@ -32,12 +33,34 @@ Repository sources are separated by responsibility: `images/base/` contains the 
 Task foundations, `images/builders/vm-materializer/` turns Linux VM OCI content into
 qcow2, and `images/runtimes/qemu-runner/` hosts prepared qcow2 disks under QEMU/KVM.
 
+Linux bases carry no guest service. The engine installs its own guestd: Docker copies it
+into each sandbox it creates, and VM preparation writes it, with the systemd unit that
+starts it, into every disk it materializes. It lives under root-only `/opt/ale`. A guest
+therefore always speaks the protocol of the engine driving it, an image release never has
+to follow a guestd change, and a base that still carries an older guestd boots the
+engine's instead.
+
+## Versions
+
+Every ALE image is published under an exact `X.Y.Z` version that never changes. The
+version the engine uses for each image, and a hash of the sources it was built from, are
+recorded in `packages/ale-run/src/ale/run/releases.json`. Changing an image's sources
+requires a new version there; the image lock test and the publishing workflow both refuse
+otherwise, and CI publishes only versions the registry does not have yet. No `latest` tag
+is published.
+
+A Task's final stage names a base release, such as `container-ubuntu22-base:0.1.1`,
+optionally with its digest; `ale lint` rejects `latest` and any other floating tag. An
+older release stays usable with a newer engine, because the engine supplies the guest
+service. A checkout pinned to one engine commit therefore keeps building its Tasks from
+exactly the images they name, whatever later releases publish.
+
 ## Task image
 
 For a local Linux image, `image/` is the sole ordinary Docker build context:
 
 ```dockerfile
-FROM ghcr.io/agentslastexam/container-ubuntu22-base:latest
+FROM ghcr.io/agentslastexam/container-ubuntu22-base:0.1.1
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends sqlite3 \
@@ -104,10 +127,11 @@ not mutable tags that concurrent builds can overwrite.
 
 ## VM preparation
 
-A Linux VM Task Dockerfile ends in `vm-ubuntu24-base`. ALE exports the final OCI rootfs and
+A Linux VM Task Dockerfile ends in `vm-ubuntu24-base`. ALE exports the final OCI rootfs,
+adds its guest service configured from the image's `ale.user` and `ale.gui` labels, and
 runs its pinned materializer, which owns initramfs, boot, partition assembly, and the
-minimal bootable qcow2 template. Reuse is keyed by final OCI plus materializer identities
-and validated structurally without hashing the whole disk.
+minimal bootable qcow2 template. Reuse is keyed by final OCI, materializer and guest
+service identities and validated structurally without hashing the whole disk.
 
 Windows 10 has no public ISO build path in ALE. The current private BYOL base starts from
 the GCP image `agenthle-win10-base-0210`; the maintained `images/base/vm-windows10/prepare.ps1`

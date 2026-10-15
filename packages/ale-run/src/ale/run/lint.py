@@ -10,6 +10,7 @@ import yaml
 
 from ale.core.errors import TaskDefinitionError
 from ale.core.taskspec import OperatingSystem
+from ale.run.releases import REGISTRY, reference
 from ale.run.tasksets.manifest import (
     INSTRUCTION,
     STAGE_ENTRY,
@@ -26,8 +27,11 @@ _FIXED_SETUP = re.compile(
     r"Invoke-WebRequest|Invoke-RestMethod)",
     re.IGNORECASE,
 )
-_CONTAINER_BASE = re.compile(r"^ghcr\.io/agentslastexam/container-ubuntu22-base:[^ ]+$")
-_VM_BASE = re.compile(r"^ghcr\.io/agentslastexam/vm-ubuntu24-base:(?!latest$)[^ ]+$")
+#: A base is pinned to a published release; a floating tag would let an engine update
+#: change the image an existing Task builds from.
+_RELEASE = r":\d+\.\d+\.\d+(?:@sha256:[0-9a-f]{64})?$"
+_CONTAINER_BASE = re.compile(rf"^{re.escape(REGISTRY)}/container-ubuntu22-base{_RELEASE}")
+_VM_BASE = re.compile(rf"^{re.escape(REGISTRY)}/vm-ubuntu24-base{_RELEASE}")
 _VM_RESERVED_NAMES = {
     "ale-guestd.service",
     "autoinstall.yaml",
@@ -165,7 +169,8 @@ def _check_folder(folder: TaskFolder) -> list[Finding]:
                 Finding(
                     dockerfile,
                     f"final stage for declared {kind or 'unknown'} kind must derive directly "
-                    f"from an ALE {label} image",
+                    f"from an ALE {label} image pinned to a release such as "
+                    f"{reference(label)}, never latest",
                 )
             )
         if kind == "vm" and _vm_boot_override(dockerfile):
