@@ -15,9 +15,8 @@ from typing import Any
 COORDINATE_SPACE = 1000
 #: Where guestd's Cua Driver server listens on Linux.
 _LINUX_SOCKET = "/tmp/ale-cua-driver.sock"
-#: Programs that put a desktop on screen; an image with none of them is headless.
-_DISPLAY_SERVERS = ("Xvnc", "Xvfb", "Xorg", "Xwayland", "gnome-shell", "gdm3", "lightdm", "sddm")
-_PROGRAM_DIRS = ("/usr/bin", "/usr/sbin", "/usr/local/bin", "/usr/libexec", "/bin", "/sbin")
+#: The alias systemd links when a display manager (GDM, LightDM, SDDM) is enabled.
+_DISPLAY_MANAGER = "/etc/systemd/system/display-manager.service"
 #: What Cua Driver takes from the session it drives.
 _SESSION_KEYS = (
     "DISPLAY",
@@ -44,39 +43,18 @@ def _binary() -> str:
 
 
 def has_desktop() -> bool:
-    """Whether this image can put a desktop on screen at all.
+    """Whether this sandbox is configured to show a desktop, decided before anything starts.
 
-    Decided from the programs the image ships, so a headless image is known to be headless
-    at once instead of after waiting for a screen that will never appear.
+    A virtual machine has one when its systemd enables a display manager. A container has
+    one when its image sets ``DISPLAY`` or ``WAYLAND_DISPLAY``: that is how a desktop image
+    tells its processes where to draw, while an image that ships X only as a tool, such as
+    Xvfb for a headless browser, does not.
     """
     if os.name == "nt":
         return True
-    return any(
-        os.path.exists(os.path.join(directory, name))
-        for directory in _PROGRAM_DIRS
-        for name in _DISPLAY_SERVERS
+    return bool(os.environ.get("DISPLAY") or os.environ.get("WAYLAND_DISPLAY")) or os.path.lexists(
+        _DISPLAY_MANAGER
     )
-
-
-def display_running() -> bool:
-    """Whether any display server, display manager or desktop shell is running now.
-
-    An image may ship X only as a tool, such as Xvfb for a headless browser, without ever
-    starting a desktop; one that starts none within its grace period has no desktop.
-    """
-    if os.name == "nt":
-        return True
-    names = {*_DISPLAY_SERVERS, *_SHELLS, "gdm", "Xvnc-session"}
-    for entry in os.scandir("/proc"):
-        if not entry.name.isdigit():
-            continue
-        try:
-            with open(f"/proc/{entry.name}/comm") as handle:
-                if handle.read().strip() in names:
-                    return True
-        except OSError:
-            continue
-    return False
 
 
 def _call(tool: str, arguments: dict[str, Any] | None = None) -> dict[str, Any]:

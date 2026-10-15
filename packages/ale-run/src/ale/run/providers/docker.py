@@ -911,20 +911,16 @@ class DockerProvider(Provider):
         )
         return out.strip() if code == 0 else ""
 
-    async def _await_desktop(
-        self, client: GuestClient, timeout_sec: float = 120, grace_sec: float = 30
-    ) -> None:
+    async def _await_desktop(self, client: GuestClient, timeout_sec: float = 120) -> None:
         """Block until the screen can actually be captured.
 
         A desktop image starts an X server, a window manager and a session from its own
         command, and none of that is instant. Waiting on a marker file would work for
         one image and be a lie for the next, so this waits on the capability itself:
-        a sandbox is ready for GUI work when a screenshot succeeds. An image that ships
-        desktop programs but starts none of them within ``grace_sec`` is headless.
+        a sandbox is ready for GUI work when a screenshot succeeds.
         """
         loop = asyncio.get_running_loop()
-        started = loop.time()
-        deadline = started + timeout_sec
+        deadline = loop.time() + timeout_sec
         last: Exception | None = None
         while loop.time() < deadline:
             try:
@@ -932,10 +928,6 @@ class DockerProvider(Provider):
                 return
             except Exception as exc:
                 last = exc
-                if loop.time() - started > grace_sec and not (await client.health()).get(
-                    "display_running"
-                ):
-                    return
                 await asyncio.sleep(1.0)
         raise ProviderStartError(
             f"the desktop did not come up within {timeout_sec:g}s; last attempt: {last}"

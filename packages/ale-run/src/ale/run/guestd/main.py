@@ -74,7 +74,7 @@ class Handler:
     # --- introspection ------------------------------------------------------
 
     def op_health(self, req_id: int, params: dict[str, Any]) -> dict[str, Any]:
-        from gui import available, display_running, has_desktop
+        from gui import available, has_desktop
 
         operating_system = "windows" if os.name == "nt" else "linux"
         agent_user = os.environ.get("ALE_AGENT_USER") or _current_user()
@@ -90,7 +90,6 @@ class Handler:
             agent_home=os.environ.get("ALE_AGENT_HOME") or _home_of(agent_user),
             gui=desktop,
             gui_ready=available() if desktop else False,
-            display_running=display_running() if desktop else False,
         )
 
     # --- execution ----------------------------------------------------------
