@@ -1074,7 +1074,9 @@ class QemuProvider(Provider):
                 raise ProviderStartError(f"could not route the gateway: {stderr.strip()}")
         return host_ip
 
-    async def _await_desktop(self, client: GuestClient, timeout_sec: float = 300) -> None:
+    async def _await_desktop(
+        self, client: GuestClient, timeout_sec: float = 300, grace_sec: float = 120
+    ) -> None:
         """Block until the screen can be captured *and* something has been drawn on it.
 
         Capturing alone is not enough here, and that is the difference from the container
@@ -1090,16 +1092,22 @@ class QemuProvider(Provider):
         the screen with one colour, which is why it lives here and not in ``screenshot``.
 
         Longer deadline than the container backend allows, because a virtual machine is
-        booting an operating system rather than starting a process tree.
+        booting an operating system rather than starting a process tree. A guest that ships
+        desktop programs but starts none of them within ``grace_sec`` is headless.
         """
         loop = asyncio.get_running_loop()
-        deadline = loop.time() + timeout_sec
+        started = loop.time()
+        deadline = started + timeout_sec
         last = "no screenshot was taken"
         while loop.time() < deadline:
             try:
                 png = await client.screenshot()
             except Exception as exc:
                 last = str(exc)
+                if loop.time() - started > grace_sec and not (await client.health()).get(
+                    "display_running"
+                ):
+                    return
                 await asyncio.sleep(2)
                 continue
             if not _is_blank(png):

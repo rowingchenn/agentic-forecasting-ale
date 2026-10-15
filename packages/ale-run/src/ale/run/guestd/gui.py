@@ -58,6 +58,27 @@ def has_desktop() -> bool:
     )
 
 
+def display_running() -> bool:
+    """Whether any display server, display manager or desktop shell is running now.
+
+    An image may ship X only as a tool, such as Xvfb for a headless browser, without ever
+    starting a desktop; one that starts none within its grace period has no desktop.
+    """
+    if os.name == "nt":
+        return True
+    names = {*_DISPLAY_SERVERS, *_SHELLS, "gdm", "Xvnc-session"}
+    for entry in os.scandir("/proc"):
+        if not entry.name.isdigit():
+            continue
+        try:
+            with open(f"/proc/{entry.name}/comm") as handle:
+                if handle.read().strip() in names:
+                    return True
+        except OSError:
+            continue
+    return False
+
+
 def _call(tool: str, arguments: dict[str, Any] | None = None) -> dict[str, Any]:
     try:
         return _invoke(tool, arguments)
