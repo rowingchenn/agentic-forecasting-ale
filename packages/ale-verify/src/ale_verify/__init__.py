@@ -288,7 +288,11 @@ class Verification:
         if not self._criteria and not self._aggregates:
             raise ValueError("verification must contain at least one reward")
         if "overall" not in self._aggregates:
-            raise ValueError('verification must define an "overall" aggregate before write()')
+            # The total every report reads: unless the author defined it, the weighted mean
+            # of every criterion.
+            if not self._criteria:
+                raise ValueError('verification without criteria must define "overall" itself')
+            self.aggregate("overall")
         self._status = "completed"
         record = self._persist()
         if not self._verdict_path:

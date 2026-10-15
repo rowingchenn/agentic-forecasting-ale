@@ -128,8 +128,6 @@ def test_duplicate_invalid_and_terminal_mutations_fail(verify_env: tuple[Path, P
         verification.stat("files", 2)
     with pytest.raises(ValueError, match="duplicate"):
         verification.stat("format", 2)
-    with pytest.raises(ValueError, match="overall"):
-        verification.write()
     verification.aggregate("overall")
     with pytest.raises(RuntimeError, match="after an aggregate over all criteria"):
         verification.check("late-criterion", CheckResult(1))
@@ -137,6 +135,29 @@ def test_duplicate_invalid_and_terminal_mutations_fail(verify_env: tuple[Path, P
     verification.write()
     with pytest.raises(RuntimeError, match="terminal"):
         verification.stat("late", 1)
+
+
+def test_write_adds_overall_as_the_weighted_mean_of_every_criterion(
+    verify_env: tuple[Path, Path],
+) -> None:
+    verification = Verification()
+    verification.check("a", CheckResult(1), weight=3)
+    verification.check("b", CheckResult(0))
+    verification.aggregate("first", inputs=["a"])
+    verification.stat("files", 2)
+    verification.write()
+    record = VerificationRecord.from_json(verify_env[0].read_bytes())
+    assert record.rewards == {"a": 1.0, "b": 0.0, "first": 1.0, "overall": 0.75}
+
+
+def test_an_author_defined_overall_is_kept(verify_env: tuple[Path, Path]) -> None:
+    verification = Verification()
+    verification.check("a", CheckResult(1))
+    verification.check("b", CheckResult(0))
+    verification.aggregate("overall", inputs=["a"])
+    verification.write()
+    record = VerificationRecord.from_json(verify_env[0].read_bytes())
+    assert record.rewards["overall"] == 1.0
 
 
 def test_explicit_aggregates_leave_criteria_open(verify_env: tuple[Path, Path]) -> None:

@@ -12,11 +12,11 @@ verification.check(
     "reward",
     checks.text_equals("/home/user/output/result.txt", "hello world"),
 )
-verification.aggregate("overall")
 verification.write()
 ```
 
-Every verifier ends with an `overall` aggregate before `write()`.
+`write()` adds the `overall` reward as the weighted mean of every criterion unless the
+verifier defined its own `overall` aggregate.
 
 Verification code runs from the Task's `verify/` directory. It writes
 `verification.json` and the final reward envelope through paths supplied by ALE; callers
