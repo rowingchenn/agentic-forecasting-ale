@@ -17,6 +17,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from ale.core.errors import AssetError
 from ale.run.assets import (
+    ASSET_NAMESPACE,
     STAGES,
     AssetLocation,
     AssetRepositorySelection,
@@ -36,7 +37,7 @@ class AssetCheckpoint(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     schema_version: Literal[1] = 1
-    repo_id: str = Field(pattern=r"^agents-last-exam/[A-Za-z0-9_.-]+$")
+    repo_id: str = Field(pattern=rf"^{ASSET_NAMESPACE}/[A-Za-z0-9_.-]+$")
     collection_slug: str | None = None
     task_path: str
     workspace: Path
@@ -133,7 +134,7 @@ def _initialize(
             checkpoint = read_checkpoint(_metadata(workspace))
             if (
                 checkpoint.task_path != selection.tasks[0].source.task_relative_path
-                or checkpoint.repo_id != f"agents-last-exam/{selection.repository_name}"
+                or checkpoint.repo_id != f"{ASSET_NAMESPACE}/{selection.repository_name}"
             ):
                 raise AssetError("asset workspace belongs to a different Task repository or Task")
             if _git(workspace, "branch", "--show-current") != branch:
@@ -186,7 +187,7 @@ def checkpoint_assets(
         and (observation is None or observation.commit is None)
     ):
         return AssetCheckpoint(
-            repo_id=f"agents-last-exam/{selection.repository_name}",
+            repo_id=f"{ASSET_NAMESPACE}/{selection.repository_name}",
             task_path=selection.tasks[0].source.task_relative_path or "",
             workspace=workspace,
         )
@@ -250,7 +251,7 @@ def check_assets(task: Path, checkpoint: AssetCheckpoint) -> None:
     selection = _selection(task)
     if (
         checkpoint.task_path != selection.tasks[0].source.task_relative_path
-        or checkpoint.repo_id != f"agents-last-exam/{selection.repository_name}"
+        or checkpoint.repo_id != f"{ASSET_NAMESPACE}/{selection.repository_name}"
     ):
         raise AssetError("asset checkpoint belongs to a different Task")
     if checkpoint.commit is None and not any(
@@ -322,7 +323,7 @@ def restore_assets(task: Path, checkpoint: AssetCheckpoint) -> None:
     selection = _selection(task)
     if (
         checkpoint.task_path != selection.tasks[0].source.task_relative_path
-        or checkpoint.repo_id != f"agents-last-exam/{selection.repository_name}"
+        or checkpoint.repo_id != f"{ASSET_NAMESPACE}/{selection.repository_name}"
     ):
         raise AssetError("asset checkpoint belongs to a different Task")
     with (

@@ -50,7 +50,7 @@ def test_pull_replaces_only_selected_subtrees_and_records_commit(
     monkeypatch.setattr("huggingface_hub.snapshot_download", snapshot_download)
     (result,) = pull_assets(
         [repository / "tasks/one"],
-        collection="agents-last-exam/assets-123",
+        collection="Chennzi/assets-123",
         revision="a" * 40,
     )
     assert result.commit == "a" * 40
@@ -96,7 +96,7 @@ def test_pull_rolls_back_every_selected_root_when_replacement_fails(
     monkeypatch.setattr("ale.run.assets.shutil.copytree", fail_second_copy)
 
     with pytest.raises(AssetError, match="simulated replacement failure"):
-        pull_assets([task], collection="agents-last-exam/assets-123", force=True)
+        pull_assets([task], collection="Chennzi/assets-123", force=True)
 
     assert (task / "image/assets/original.txt").read_text() == "image"
     assert (task / "setup/assets/original.txt").read_text() == "setup"
@@ -116,4 +116,4 @@ def test_pull_rejects_public_dataset(
 
     monkeypatch.setattr("huggingface_hub.HfApi", Public)
     with pytest.raises(AssetError, match="must be private"):
-        pull_assets([repository], collection="agents-last-exam/assets-123")
+        pull_assets([repository], collection="Chennzi/assets-123")

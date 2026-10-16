@@ -131,8 +131,8 @@ def test_assets_cli_accepts_multiple_paths_collection_and_force(
         return (
             SimpleNamespace(
                 repository="repo",
-                remote_repo_id="agents-last-exam/repo",
-                collection_slug="agents-last-exam/assets-1",
+                remote_repo_id="Chennzi/repo",
+                collection_slug="Chennzi/assets-1",
                 commit="a" * 40,
                 tasks=(),
             ),
@@ -150,7 +150,7 @@ def test_assets_cli_accepts_multiple_paths_collection_and_force(
             str(first),
             str(second),
             "--collection",
-            "agents-last-exam/assets-1",
+            "Chennzi/assets-1",
             "--force",
             "--revision",
             "a" * 40,
@@ -159,7 +159,7 @@ def test_assets_cli_accepts_multiple_paths_collection_and_force(
     assert result.exit_code == 0, result.output
     assert seen == {
         "paths": [first, second],
-        "collection": "agents-last-exam/assets-1",
+        "collection": "Chennzi/assets-1",
         "force": True,
         "revision": "a" * 40,
     }

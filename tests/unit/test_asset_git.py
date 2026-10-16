@@ -62,7 +62,7 @@ def asset_remote(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     monkeypatch.setattr(
         asset_git,
         "ensure_asset_repository",
-        lambda name, collection: (f"agents-last-exam/{name}", "agents-last-exam/assets-123"),
+        lambda name, collection: (f"Chennzi/{name}", "Chennzi/assets-123"),
     )
     return remote
 
@@ -229,8 +229,8 @@ def test_private_org_repository_and_collection_are_enforced(
             return SimpleNamespace(private=True)
 
         def list_collections(self, **kwargs: object) -> list[object]:
-            assert kwargs == {"owner": "agents-last-exam"}
-            return [SimpleNamespace(title="assets", slug="agents-last-exam/assets-123")]
+            assert kwargs == {"owner": "Chennzi"}
+            return [SimpleNamespace(title="assets", slug="Chennzi/assets-123")]
 
         def add_collection_item(self, *args: object, **kwargs: object) -> None:
             calls.append(("collection", args))
@@ -238,11 +238,11 @@ def test_private_org_repository_and_collection_are_enforced(
     monkeypatch.delenv("ALE_ASSETS_COLLECTION", raising=False)
     monkeypatch.setattr("huggingface_hub.HfApi", Api)
     assert ensure_asset_repository("tasks-example") == (
-        "agents-last-exam/tasks-example",
-        "agents-last-exam/assets-123",
+        "Chennzi/tasks-example",
+        "Chennzi/assets-123",
     )
     assert calls[0] == (
-        "agents-last-exam/tasks-example",
+        "Chennzi/tasks-example",
         {"repo_type": "dataset", "private": True, "exist_ok": True},
     )
 
@@ -263,7 +263,7 @@ def test_removed_assets_have_a_deletion_commit(
 
 def test_checkpoint_rejects_unsafe_task_path(tmp_path: Path) -> None:
     with pytest.raises(ValueError, match="relative"):
-        AssetCheckpoint(repo_id="agents-last-exam/demo", task_path="../escape", workspace=tmp_path)
+        AssetCheckpoint(repo_id="Chennzi/demo", task_path="../escape", workspace=tmp_path)
 
 
 def test_partial_task_checkpoint_does_not_require_a_valid_manifest(
@@ -377,7 +377,7 @@ def test_pr_cross_link_preserves_body_and_is_idempotent(
     from huggingface_hub.community import DiscussionComment
 
     checkpoint = AssetCheckpoint(
-        repo_id="agents-last-exam/tasks-example",
+        repo_id="Chennzi/tasks-example",
         task_path="tasks/demo",
         workspace=tmp_path,
         commit="a" * 40,
