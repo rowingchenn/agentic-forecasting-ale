@@ -54,7 +54,7 @@ class CodexCliSettings(BaseModel):
     reasoning_effort: Literal[
         "default", "none", "minimal", "low", "medium", "high", "xhigh", "max"
     ] = "default"
-    web_search: bool = False
+    web_search: Literal["default", "disabled", "cached", "indexed", "live"] = "default"
 
 
 class CodexCliHarness(AutonomousHarness):
@@ -123,10 +123,10 @@ class CodexCliHarness(AutonomousHarness):
             "check_for_update_on_startup = false",
             'approval_policy = "never"',
             'sandbox_mode = "danger-full-access"',
-            # `codex exec` has no --search flag, and omitting the key leaves Codex's
-            # cached search on, so the setting is stated in both directions.
-            f'web_search = "{"live" if self.settings.web_search else "disabled"}"',
         ]
+        # `codex exec` has no --search flag; "default" keeps Codex's own mode (cached).
+        if self.settings.web_search != "default":
+            lines.append(f"web_search = {json.dumps(self.settings.web_search)}")
         if self.settings.reasoning_effort != "default":
             lines.append(f"model_reasoning_effort = {json.dumps(self.settings.reasoning_effort)}")
         lines.extend(
