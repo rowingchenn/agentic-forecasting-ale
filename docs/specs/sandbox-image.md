@@ -49,8 +49,10 @@ pieces through it:
 - a check that `image.user` names the account the base signs in.
 
 Elevation for `resources.sudo` is granted per boot by the Host, not built into the disk.
-A Windows desktop is always present. A disk used directly as `image.ref` is not prepared
-by ALE and must carry a current guestd and Cua Driver itself.
+A Windows sandbox has a desktop for ALE to drive exactly when its image carries the
+framework's Cua Driver, so the Provider waits for a screenshot in every Task image and
+not in the bare base booted to build one. A disk used directly as `image.ref` is not
+prepared by ALE and must carry a current guestd and Cua Driver itself.
 
 ## ALE base images
 

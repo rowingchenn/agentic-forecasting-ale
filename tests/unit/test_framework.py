@@ -212,6 +212,17 @@ def test_a_desktop_is_decided_by_the_images_own_configuration(
     assert gui.has_desktop()  # a VM whose systemd enables a display manager
 
 
+def test_a_windows_desktop_is_drivable_once_the_framework_installed_cua_driver(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    driver = tmp_path / "cua-driver.exe"
+    monkeypatch.setattr(gui, "_WINDOWS_DRIVER", str(driver))
+    monkeypatch.setattr(gui.os, "name", "nt")
+    assert not gui.has_desktop()  # the bare base, booted to build a Task image
+    driver.write_bytes(b"pe")
+    assert gui.has_desktop()  # any Task image
+
+
 def test_a_failed_call_starts_the_driver_once_and_retries(monkeypatch: pytest.MonkeyPatch) -> None:
     calls: list[str] = []
     started: list[bool] = []

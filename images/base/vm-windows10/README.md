@@ -54,9 +54,9 @@ see or control the desktop.
   The base's copy is a bootstrap: building a Task image replaces it with the engine's own,
   so it only has to speak the current authentication handshake.
 - Image builds and `resources.sudo` need the elevated `ALE Guestd Session` logon task.
-- The published `0.1.0` disk predates both the handshake and that task, so this engine
-  cannot use it; re-run `prepare.ps1` on it from an elevated session to bring it up to
-  this contract.
+- `0.1.0` predates both the handshake and that task, so this engine cannot use it.
+- `0.1.1` is `0.1.0` with this `prepare.ps1` re-run from an elevated session (it also
+  dropped the old per-user Cua Driver), then booted once and verified.
 - Cua Driver exclusively provides screenshots and desktop input. ALE installs its pinned
   version when it builds a Task image; the base carries none.
 

@@ -65,6 +65,8 @@ if (-not (Test-Path $python)) {
 }
 & $python -c "import sys; assert sys.version_info >= (3, 12), sys.version"
 
+# Replace, not merge: a re-run must not keep modules an older guestd shipped.
+Get-ChildItem $guestd -Force | Remove-Item -Recurse -Force
 Copy-Item "$GuestdSource\*.py" $guestd -Force
 icacls "$env:ProgramData\ALE" /inheritance:r /grant:r `
     "SYSTEM:(OI)(CI)(F)" "Administrators:(OI)(CI)(F)" "${AgentUser}:(OI)(CI)(RX)" | Out-Null

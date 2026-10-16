@@ -54,10 +54,12 @@ def has_desktop() -> bool:
     A virtual machine has one when its systemd enables a display manager. A container has
     one when its image sets ``DISPLAY`` or ``WAYLAND_DISPLAY``: that is how a desktop image
     tells its processes where to draw, while an image that ships X only as a tool, such as
-    Xvfb for a headless browser, does not.
+    Xvfb for a headless browser, does not. Windows always draws one, and it is ALE's to
+    drive once the framework has installed Cua Driver, as in every Task image; the bare
+    base, booted only to build a Task image, has none to wait for.
     """
     if os.name == "nt":
-        return True
+        return os.path.isfile(_WINDOWS_DRIVER)
     return bool(os.environ.get("DISPLAY") or os.environ.get("WAYLAND_DISPLAY")) or os.path.lexists(
         _DISPLAY_MANAGER
     )
