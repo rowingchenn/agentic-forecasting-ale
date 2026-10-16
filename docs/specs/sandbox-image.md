@@ -80,6 +80,8 @@ overwritten: the publishing workflow skips a version the registry already has, a
 `latest` tag is published. An engine runs exactly the images of its own version, so a
 checkout that stays on one engine version keeps the same images whatever later versions
 publish. Publishing a changed image therefore means releasing a new engine version.
+Tags that every change overwrote used to carry one engine's change into every checkout's
+next build, including checkouts whose engine did not speak the new guest protocol.
 
 A Task may build from any image. Task repositories maintained with ALE name an exact
 version of an ALE base, such as `container-ubuntu22-base:0.1.1`, so that a Task keeps
@@ -198,7 +200,7 @@ qcow2, grows the guest root filesystem, waits for guestd and the declared deskto
 and observes usable root capacity. The guest health contract reports its OS, agent user,
 agent home, and GUI readiness; a Task whose `os` disagrees with the image is rejected.
 Every TCP guest connection authenticates with the sandbox token claimed by the framework's
-first connection ([ADR 0008](../adr/0008-claimed-guest-service.md)); an image whose guest
+first connection ([security](security.md)); an image whose guest
 service predates authentication fails before provisioning completes and must be rebuilt.
 Tasks may install ordinary OS packages and services, including Docker; VM boot machinery
 stays engine-owned.
