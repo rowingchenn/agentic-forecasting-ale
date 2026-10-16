@@ -123,6 +123,9 @@ class CodexCliHarness(AutonomousHarness):
             "check_for_update_on_startup = false",
             'approval_policy = "never"',
             'sandbox_mode = "danger-full-access"',
+            # `codex exec` has no --search flag, and omitting the key leaves Codex's
+            # cached search on, so the setting is stated in both directions.
+            f'web_search = "{"live" if self.settings.web_search else "disabled"}"',
         ]
         if self.settings.reasoning_effort != "default":
             lines.append(f"model_reasoning_effort = {json.dumps(self.settings.reasoning_effort)}")
@@ -235,8 +238,6 @@ class CodexCliHarness(AutonomousHarness):
             "--dangerously-bypass-approvals-and-sandbox",
             "--skip-git-repo-check",
         ]
-        if self.settings.web_search:
-            argv.append("--search")
         if native_session_id is not None:
             argv.extend(["resume", native_session_id])
         argv.append("-")

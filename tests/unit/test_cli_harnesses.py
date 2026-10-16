@@ -367,6 +367,19 @@ async def test_resource_translation_uses_episode_local_native_config(tmp_path: P
         assert "token" not in rendered
 
 
+@pytest.mark.parametrize(("enabled", "mode"), [(True, "live"), (False, "disabled")])
+async def test_codex_web_search_is_configured_not_flagged(
+    tmp_path: Path, enabled: bool, mode: str
+) -> None:
+    sandbox = FakeSandbox()
+    harness = CodexCliHarness(settings={"web_search": enabled})
+
+    await harness.install_resources(sandbox, session(), resources(tmp_path))  # type: ignore[arg-type]
+
+    rendered = sandbox.files["/home/agent/.codex-ale/config.toml"].decode()
+    assert f'web_search = "{mode}"' in rendered
+
+
 async def test_grok_chat_gateway_selects_native_chat_backend(tmp_path: Path) -> None:
     sandbox = FakeSandbox()
     harness = GrokBuildHarness(gateway_dialect="openai-chat-completions")
